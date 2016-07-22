@@ -36,8 +36,6 @@ bool ofxHttpUtils::initialized = false;
 // ----------------------------------------------------------------------
 ofxHttpUtils::ofxHttpUtils(){
     timeoutSeconds = 2;
-    maxRetries = -1; // -1 means an infinite number of retries
-    nbOfTries = 0;
     verbose = true;
     sendCookies = true;
     //start();
@@ -96,20 +94,7 @@ void ofxHttpUtils::threadedFunction(){
 				response = getUrl(url);
 			}
     		lock();
-            if(response.status!=-1) {
-                nbOfTries = 0;
-                forms.pop();
-            }
-            else if (maxRetries >= 0) {
-                nbOfTries++;
-                ofLogWarning("ofxHttpUtils") << "The resquest did not succeed. We will try again " << maxRetries - nbOfTries << " time(s)";
-                if (nbOfTries >= maxRetries) {
-                    ofLogError("ofxHttpUtils") << "We pop that resquest. Too much retries -- " << form.action.c_str();
-                    nbOfTries = 0;
-                    forms.pop();
-                }
-            }
-            
+			if(response.status!=-1) forms.pop();
     	}
     	if(forms.empty()){
     	    ofLogVerbose("ofxHttpUtils") << "empty, waiting";
@@ -150,7 +135,85 @@ string ofxHttpUtils::generateUrl(ofxHttpForm & form) {
     return url;
 }
 
-// ----------------------------------------------------------------------
+ofxHttpResponse ofxHttpUtils::postData(string url, const ofBuffer &data, map<string, string> headers, string contentType){
+    //thanks Jeff Crouse - http://jeffish.com/ :)
+    
+    ofxHttpResponse response;
+    try{
+		URI uri( url.c_str() );
+		std::string path(uri.getPathAndQuery());
+		if (path.empty()) path = "/";
+        
+		//HTTPClientSession session(uri.getHost(), uri.getPort());
+		HTTPRequest req(HTTPRequest::HTTP_POST, path, HTTPMessage::HTTP_1_1);
+		if(auth.getUsername()!="") auth.authenticate(req);
+        
+		if(sendCookies){
+			for(unsigned i=0; i<cookies.size(); i++){
+				NameValueCollection reqCookies;
+				reqCookies.add(cookies[i].getName(),cookies[i].getValue());
+				req.setCookies(reqCookies);
+			}
+		}
+        
+		if(contentType!=""){
+			req.setContentType(contentType);
+		}
+        
+        //headers
+        for(map<string,string>::iterator it = headers.begin();
+            it != headers.end(); it++) {
+            req.set(it->first, it->second);
+        }
+        
+		req.setContentLength(data.size());
+        
+		HTTPResponse res;
+		ofPtr<HTTPSession> session;
+		istream * rs;
+		if(uri.getScheme()=="https"){
+			HTTPSClientSession * httpsSession = new HTTPSClientSession(uri.getHost(), uri.getPort());//,context);
+			httpsSession->setTimeout(Poco::Timespan(20,0));
+			httpsSession->sendRequest(req) << data;
+			rs = &httpsSession->receiveResponse(res);
+			session = ofPtr<HTTPSession>(httpsSession);
+		}else{
+			HTTPClientSession * httpSession = new HTTPClientSession(uri.getHost(), uri.getPort());
+			httpSession->setTimeout(Poco::Timespan(20,0));
+			httpSession->sendRequest(req) << data;
+			rs = &httpSession->receiveResponse(res);
+			session = ofPtr<HTTPSession>(httpSession);
+		}
+        
+		response = ofxHttpResponse(res, *rs, url);
+        
+		if(sendCookies){
+			cookies.insert(cookies.begin(),response.cookies.begin(),response.cookies.end());
+		}
+        
+		if(response.status>=300 && response.status<400){
+			Poco::URI uri(req.getURI());
+			uri.resolve(res.get("Location"));
+			response.location = uri.toString();
+		}
+        
+		ofNotifyEvent(newResponseEvent, response, this);
+	}catch (Exception& exc){
+        
+    	ofLogError("ofxHttpUtils") << "ofxHttpUtils error postData--";
+        
+        //ofNotifyEvent(notifyNewError, "time out", this);
+        
+        // for now print error, need to broadcast a response
+    	ofLogError("ofxHttpUtils") << exc.displayText();
+        response.status = -1;
+        response.reasonForStatus = exc.displayText();
+    	ofNotifyEvent(newResponseEvent, response, this);
+        
+    }
+	return response;
+}
+
 ofxHttpResponse ofxHttpUtils::postData(string url, const ofBuffer & data,  string contentType){
 	ofxHttpResponse response;
 	try{
@@ -173,7 +236,7 @@ ofxHttpResponse ofxHttpUtils::postData(string url, const ofBuffer & data,  strin
 		if(contentType!=""){
 			req.setContentType(contentType);
 		}
-
+        
 		req.setContentLength(data.size());
 
 		HTTPResponse res;
@@ -204,11 +267,11 @@ ofxHttpResponse ofxHttpUtils::postData(string url, const ofBuffer & data,  strin
 			uri.resolve(res.get("Location"));
 			response.location = uri.toString();
 		}
-
+        
 		ofNotifyEvent(newResponseEvent, response, this);
 	}catch (Exception& exc){
 
-    	ofLogError("ofxHttpUtils") << "ofxHttpUtils error postData --";
+    	ofLogError("ofxHttpUtils") << "ofxHttpUtils error postData--";
 
         //ofNotifyEvent(notifyNewError, "time out", this);
 
@@ -225,7 +288,6 @@ ofxHttpResponse ofxHttpUtils::postData(string url, const ofBuffer & data,  strin
 // ----------------------------------------------------------------------
 ofxHttpResponse ofxHttpUtils::doPostForm(ofxHttpForm & form){
 	ofxHttpResponse response;
-    
     try{
         URI uri( form.action.c_str() );
         std::string path(uri.getPathAndQuery());
@@ -243,22 +305,13 @@ ofxHttpResponse ofxHttpUtils::doPostForm(ofxHttpForm & form){
 			}
 		}
 
-		for (unsigned int i = 0; i < form.headerIds.size(); ++i) {
-			const std::string name = form.headerIds[i].c_str();
-			const std::string val = form.headerValues[i].c_str();
-			req.set(name, val);
-		}
-
-
         HTTPResponse res;
 		HTMLForm pocoForm;
 		// create the form data to send
-        if(form.formFiles.size()>0) {
+	    if(form.formFiles.size()>0)
 			pocoForm.setEncoding(HTMLForm::ENCODING_MULTIPART);
-        }
-        else {
+		else
 			pocoForm.setEncoding(HTMLForm::ENCODING_URL);
-        }
 
 		// form values
 		for(unsigned i=0; i<form.formIds.size(); i++){
@@ -303,13 +356,15 @@ ofxHttpResponse ofxHttpUtils::doPostForm(ofxHttpForm & form){
 			uri.resolve(res.get("Location"));
 			response.location = uri.toString();
 		}
-
+        
+        response.formName = form.name;
     	ofNotifyEvent(newResponseEvent, response, this);
 
 
     }catch (Exception& exc){
-    	ofLogError("ofxHttpUtils") << "ofxHttpUtils error doPostForm -- " << form.action.c_str();
-        
+
+    	ofLogError("ofxHttpUtils") << "ofxHttpUtils error doPostForm--";
+
         //ofNotifyEvent(notifyNewError, "time out", this);
 
         // for now print error, need to broadcast a response

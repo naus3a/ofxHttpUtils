@@ -1,12 +1,12 @@
-#include "ofApp.h"
+#include "testApp.h"
 
 
 //--------------------------------------------------------------
-void ofApp::setup(){
+void testApp::setup(){
 	ofSetVerticalSync(true);
 
 	action_url = "http://localhost/of-test/upload.php";
-	ofAddListener(httpUtils.newResponseEvent,this,&ofApp::newResponse);
+	ofAddListener(httpUtils.newResponseEvent,this,&testApp::newResponse);
 	httpUtils.start();
 
 	ofBackground(255,255,255);
@@ -14,23 +14,23 @@ void ofApp::setup(){
 }
 
 //--------------------------------------------------------------
-void ofApp::update(){
+void testApp::update(){
 
 }
 
 //--------------------------------------------------------------
-void ofApp::draw(){
+void testApp::draw(){
 	ofDrawBitmapString(requestStr,20,20);
 	ofDrawBitmapString(responseStr,20,60);
 }
 
 //--------------------------------------------------------------
-void ofApp::newResponse(ofxHttpResponse & response){
+void testApp::newResponse(ofxHttpResponse & response){
 	responseStr = ofToString(response.status) + ": " + (string)response.responseBody;
 }
 
 //--------------------------------------------------------------
-void ofApp::keyPressed  (int key){
+void testApp::keyPressed  (int key){
 	ofxHttpForm form;
 	form.action = action_url;
 	form.method = OFX_HTTP_POST;
@@ -42,24 +42,24 @@ void ofApp::keyPressed  (int key){
 }
 
 //--------------------------------------------------------------
-void ofApp::mouseMoved(int x, int y ){
+void testApp::mouseMoved(int x, int y ){
 }
 
 //--------------------------------------------------------------
-void ofApp::mouseDragged(int x, int y, int button){
+void testApp::mouseDragged(int x, int y, int button){
 }
 
 //--------------------------------------------------------------
-void ofApp::mousePressed(int x, int y, int button){
+void testApp::mousePressed(int x, int y, int button){
 }
 
 //--------------------------------------------------------------
-void ofApp::mouseReleased(int x, int y, int button){
+void testApp::mouseReleased(int x, int y, int button){
 
 }
 
 //--------------------------------------------------------------
-void ofApp::windowResized(int w, int h){
+void testApp::windowResized(int w, int h){
 
 }
 

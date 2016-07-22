@@ -30,11 +30,6 @@ struct ofxHttpForm{
         clearFormFields();
     }
 
-	void addHeaderField(string id, string value) {
-		headerIds.push_back(id);
-		headerValues.push_back(value);
-	}
-
 	// ----------------------------------------------------------------------
 	void addFormField(string id, string value){
         formIds.push_back( id );
@@ -60,8 +55,6 @@ struct ofxHttpForm{
 
 	vector <string> formIds;
 	vector <string> formValues;
-	vector <string> headerIds;
-	vector <string> headerValues;
 	std::map<string,string> formFiles;
 	bool expectBinaryResponse;
 };

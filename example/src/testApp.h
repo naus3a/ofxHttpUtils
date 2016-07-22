@@ -1,8 +1,13 @@
+#ifndef _TEST_APP
+#define _TEST_APP
+
 #include "ofMain.h"
 
 #include "ofxHttpUtils.h"
 
-class ofApp : public ofBaseApp{
+
+
+class testApp : public ofBaseApp{
 
 	public:
 
@@ -27,3 +32,4 @@ class ofApp : public ofBaseApp{
 
 };
 
+#endif

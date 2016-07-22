@@ -59,6 +59,7 @@ struct ofxHttpResponse{
 	string url;
 	vector<Poco::Net::HTTPCookie> cookies;
 	string location;
+    string formName;
 };
 
 class ofxHttpUtils : public ofThread{
@@ -78,6 +79,7 @@ class ofxHttpUtils : public ofThread{
 		ofxHttpResponse submitForm(ofxHttpForm form);
 		ofxHttpResponse getUrl(string url);
 		ofxHttpResponse postData(string url, const ofBuffer & data, string contentType="");
+    ofxHttpResponse postData(string url, const ofBuffer & data, map<string, string> headers, string contentType="");
 
         int getQueueLength();
         void clearQueue();
@@ -93,9 +95,6 @@ class ofxHttpUtils : public ofThread{
         // other stuff-------------------
         void setTimeoutSeconds(int t){
             timeoutSeconds = t;
-        }
-        void setMaxRetries(int val){ // -1 means an infinite number of retries
-            maxRetries = val;
         }
         void setVerbose(bool v){
             verbose = v;
@@ -113,10 +112,7 @@ class ofxHttpUtils : public ofThread{
 
 		bool verbose;
         int timeoutSeconds;
-        int maxRetries; 
         bool sendCookies;
-    
-        int nbOfTries;
 
 		//--------------------------------
 		// http utils
