@@ -197,6 +197,7 @@ ofxHttpResponse ofxHttpUtils::postData(string url, const ofBuffer &data, map<str
 			response.location = uri.toString();
 		}
         
+        if(contentType!="")response.contentType = contentType;
 		ofNotifyEvent(newResponseEvent, response, this);
 	}catch (Exception& exc){
         
@@ -208,6 +209,8 @@ ofxHttpResponse ofxHttpUtils::postData(string url, const ofBuffer &data, map<str
     	ofLogError("ofxHttpUtils") << exc.displayText();
         response.status = -1;
         response.reasonForStatus = exc.displayText();
+        
+        if(contentType!="")response.contentType = contentType;
     	ofNotifyEvent(newResponseEvent, response, this);
         
     }
@@ -268,6 +271,8 @@ ofxHttpResponse ofxHttpUtils::postData(string url, const ofBuffer & data,  strin
 			response.location = uri.toString();
 		}
         
+        if(contentType!="")response.contentType = contentType;
+
 		ofNotifyEvent(newResponseEvent, response, this);
 	}catch (Exception& exc){
 
@@ -279,6 +284,9 @@ ofxHttpResponse ofxHttpUtils::postData(string url, const ofBuffer & data,  strin
     	ofLogError("ofxHttpUtils") << exc.displayText();
         response.status = -1;
         response.reasonForStatus = exc.displayText();
+        
+        if(contentType!="")response.contentType = contentType;
+
     	ofNotifyEvent(newResponseEvent, response, this);
 
     }
@@ -358,6 +366,8 @@ ofxHttpResponse ofxHttpUtils::doPostForm(ofxHttpForm & form){
 		}
         
         response.formName = form.name;
+        
+        
     	ofNotifyEvent(newResponseEvent, response, this);
 
 
@@ -371,6 +381,8 @@ ofxHttpResponse ofxHttpUtils::doPostForm(ofxHttpForm & form){
     	ofLogError("ofxHttpUtils") << exc.displayText();
         response.status = -1;
         response.reasonForStatus = exc.displayText();
+        
+        
     	ofNotifyEvent(newResponseEvent, response, this);
 
     }
@@ -427,7 +439,7 @@ ofxHttpResponse ofxHttpUtils::getUrl(string url){
 			uri.resolve(res.get("Location"));
 			response.location = uri.toString();
 		}
-
+       
 		ofNotifyEvent( newResponseEvent, response, this );
 
 		//std::cout << res.getStatus() << " " << res.getReason() << std::endl;
@@ -437,6 +449,7 @@ ofxHttpResponse ofxHttpUtils::getUrl(string url){
 		ofLogError("ofxHttpUtils") << exc.displayText();
         response.status = -1;
         response.reasonForStatus = exc.displayText();
+        
     	ofNotifyEvent(newResponseEvent, response, this);
 	}
 	return response;
